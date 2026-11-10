@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { useSidebarThreads } from "./bb-sdk";
 import { threadSessionsCodec } from "./lib/inbox-preference-codecs";
@@ -13,13 +13,19 @@ export function useThreadSessions(snapshot?: Pick<ReturnType<typeof useSidebarTh
   const [sessions, setSessions] = usePersistedPreference(STORAGE_KEYS.threadSessions.key, threadSessionsCodec);
   const threads = snapshot?.threads;
   const ready = snapshot?.status === "ready";
+  const listed = useRef<ReadonlySet<string> | null>(null);
   useEffect(() => {
     if (!ready || !threads) return;
     const known = new Set(threads.map((thread) => thread.id));
-    // A subscribe-mode write always notifies, so write only when an id is unknown.
-    if (sessions.some((session) => session.threadIds.some((id) => !known.has(id)))) {
+    // Another window can add a member before this window's list shows it, so only an id that was
+    // listed (or stored before the first list) and now is not counts as archived or deleted.
+    const before = listed.current ?? new Set(sessions.flatMap((session) => session.threadIds));
+    listed.current = known;
+    const gone = (id: string) => before.has(id) && !known.has(id);
+    // A subscribe-mode write always notifies, so write only when an id is gone.
+    if (sessions.some((session) => session.threadIds.some(gone))) {
       setSessions((current) =>
-        current.map((session) => ({ ...session, threadIds: session.threadIds.filter((id) => known.has(id)) })),
+        current.map((session) => ({ ...session, threadIds: session.threadIds.filter((id) => !gone(id)) })),
       );
     }
   }, [ready, threads, sessions, setSessions]);
