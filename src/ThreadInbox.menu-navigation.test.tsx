@@ -51,6 +51,7 @@ describe("row context menu", () => {
       "Open in split",
       "Parent",
       "Project",
+      "Section",
       "Pin",
       "Snooze",
       "Park thread",
