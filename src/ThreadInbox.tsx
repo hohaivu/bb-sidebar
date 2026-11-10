@@ -43,7 +43,7 @@ import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
 import { activeSortCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
-import { useSectionShelves, useThreadSections } from "./useThreadSections";
+import { sectionScopeIds, useSectionShelves, useThreadSections } from "./useThreadSections";
 const SETTLED_INITIAL_LIMIT = 10;
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -252,6 +252,7 @@ function ThreadInboxContent({
     sections,
     sectionBase,
     order: inboxReorder.ids,
+    dragOrder,
     activeThreadId: activeListThreadId,
     attentionIds: attentionParentIds,
   });
@@ -281,6 +282,8 @@ function ThreadInboxContent({
    */
   const reorderScope = useCallback(
     (key: string, shelf: "pinned" | "inbox"): ReorderScope => {
+      const sectionIds = shelf === "inbox" ? sectionScopeIds(sectionShelves, key) : undefined;
+      if (sectionIds) return { mode: "thread", ids: sectionIds };
       if (shelf === "inbox" && activeSortMode === "project") {
         return projectGroups.reorderScope(key);
       }
@@ -289,7 +292,7 @@ function ThreadInboxContent({
         ids: (shelf === "pinned" ? visiblePinned : visibleInbox).map((candidate) => candidate.id),
       };
     },
-    [activeSortMode, projectGroups, visibleInbox, visiblePinned],
+    [activeSortMode, projectGroups, sectionShelves, visibleInbox, visiblePinned],
   );
   const reorderScopeRef = useRef(reorderScope);
   reorderScopeRef.current = reorderScope;
@@ -308,12 +311,12 @@ function ThreadInboxContent({
       }
       const live = reorderTargetsRef.current.inbox;
       const ids =
-        activeSortModeRef.current === "project" || mode === "unit"
+        !sectionThreadIds.has(movingId) && (activeSortModeRef.current === "project" || mode === "unit")
           ? projectGroupsRef.current.rebaseOrder(live.ids, previewIds, movingId, parentKey)
           : rebaseMovedId(live.ids, previewIds, movingId);
       if (ids) void live.reorder(ids);
     },
-    [],
+    [sectionThreadIds],
   );
   // Keyboard reordering moves a row with no pointer to follow and no sound, so
   // the only feedback a screen reader gets is what this region says.
@@ -351,7 +354,9 @@ function ThreadInboxContent({
           event.stopPropagation();
           const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
           const ids = movePinnedIdByOffset(currentIds, key, event.key === "ArrowUp" ? -1 : 1);
-          const shelfName = shelf === "pinned" ? "Pinned" : "Active";
+          const shelfName =
+            sections.find((section) => section.threadIds.includes(key))?.name ??
+            (shelf === "pinned" ? "Pinned" : "Active");
           setReorderAnnouncement(
             sameOrder(ids, currentIds)
               ? `${title} is already ${event.key === "ArrowUp" ? "first" : "last"} in ${shelfName}`
@@ -368,6 +373,7 @@ function ThreadInboxContent({
       listAnimationController,
       suppressDragClick,
       commitReorder,
+      sections,
     ],
   );
   const threadReorderControls = useCallback(
@@ -451,7 +457,6 @@ function ThreadInboxContent({
     wokeThreadIds,
     expandedChildParentIds,
     threadReorderControls,
-    activeSortMode,
   });
 
   return (

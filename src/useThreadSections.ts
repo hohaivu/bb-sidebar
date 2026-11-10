@@ -5,7 +5,8 @@ import { threadSectionsCodec } from "./lib/inbox-preference-codecs";
 import { STORAGE_KEYS } from "./lib/storage-keys";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
 import { visibleShelfThreads } from "./inbox-layout";
-import { orderPinnedThreads } from "./pinned-order";
+import type { InboxDragOrder } from "./drag-reorder-geometry";
+import { orderPinnedThreads, orderSubsetInPlace } from "./pinned-order";
 import { createSection, moveThreadToSection, type ThreadSection } from "./thread-sections";
 
 /** Only the inbox passes `snapshot`, so only it prunes ids the host no longer lists. */
@@ -61,25 +62,37 @@ export function useSectionShelves({
   sections,
   sectionBase,
   order,
+  dragOrder,
   activeThreadId,
   attentionIds,
 }: {
   sections: readonly ThreadSection[];
   sectionBase: readonly PluginSidebarThread[];
   order: readonly string[] | null;
+  dragOrder: InboxDragOrder | null;
   activeThreadId: string | null;
   attentionIds: ReadonlySet<string>;
 }) {
+  // A section drag previews only its own rows; other shelves ignore the ids they do not hold.
+  const dragIds = dragOrder?.shelf === "inbox" && dragOrder.mode === "thread" ? dragOrder.ids : null;
   return useMemo(
     () =>
       sections.flatMap((section) => {
-        const threads = orderPinnedThreads(
+        const ordered = orderPinnedThreads(
           sectionBase.filter((thread) => section.threadIds.includes(thread.id)),
           order,
         );
+        const threads = dragIds ? orderSubsetInPlace(ordered, dragIds) : ordered;
         const visibleThreads = visibleShelfThreads(threads, section.expanded, activeThreadId, undefined, attentionIds);
         return threads.length > 0 ? [{ section, threads, visibleThreads }] : [];
       }),
-    [activeThreadId, attentionIds, order, sectionBase, sections],
+    [activeThreadId, attentionIds, dragIds, order, sectionBase, sections],
   );
+}
+
+/** The visible row ids of the section that holds `key`, or undefined when `key` is in no section shelf. */
+export function sectionScopeIds(shelves: ReturnType<typeof useSectionShelves>, key: string) {
+  return shelves
+    .find(({ threads }) => threads.some((thread) => thread.id === key))
+    ?.visibleThreads.map((thread) => thread.id);
 }

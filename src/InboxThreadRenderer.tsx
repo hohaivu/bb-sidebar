@@ -2,7 +2,6 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { ThreadCard, type ThreadReorderControls } from "./ThreadCard";
 import { memo, useCallback } from "react";
 import { useInboxEnvironment, useInboxActions, useInboxActivity } from "./InboxContext";
-import type { ActiveSortMode } from "./inbox-layout";
 import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -24,7 +23,6 @@ const InboxThread = memo(function InboxThread({
   isWoke,
   childrenExpanded,
   threadReorderControls,
-  activeSortMode,
 }: {
   thread: PluginSidebarThread;
   shelf: ActiveShelfKind;
@@ -36,7 +34,6 @@ const InboxThread = memo(function InboxThread({
   isWoke: boolean;
   childrenExpanded: boolean;
   threadReorderControls: ReorderControls;
-  activeSortMode: ActiveSortMode;
 }) {
   const { sidebarSettings, lifecycle, childrenByParentId } = useInboxEnvironment();
   const { activeThreadId } = useInboxActivity();
@@ -66,9 +63,7 @@ const InboxThread = memo(function InboxThread({
       childThreads={childrenByParentId.get(thread.id) ?? NO_CHILDREN}
       childrenExpanded={childrenExpanded}
       reorder={
-        !reorderable ||
-        (shelf === "pinned" && thread.pinSortKey == null) ||
-        (shelf === "inbox" && (activeSortMode === "activity" || activeSortMode === "created"))
+        !reorderable || (shelf === "pinned" && thread.pinSortKey == null)
           ? undefined
           : threadReorderControls(thread, shelf)
       }
@@ -86,12 +81,10 @@ export function createInboxThreadRenderer({
   wokeThreadIds,
   expandedChildParentIds,
   threadReorderControls,
-  activeSortMode,
 }: {
   wokeThreadIds: ReadonlySet<string>;
   expandedChildParentIds: ReadonlySet<string>;
   threadReorderControls: ReorderControls;
-  activeSortMode: ActiveSortMode;
 }) {
   return (
     thread: PluginSidebarThread,
@@ -114,7 +107,6 @@ export function createInboxThreadRenderer({
       isWoke={wokeThreadIds.has(thread.id)}
       childrenExpanded={expandedChildParentIds.has(thread.id)}
       threadReorderControls={threadReorderControls}
-      activeSortMode={activeSortMode}
     />
   );
 }

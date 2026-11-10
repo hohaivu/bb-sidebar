@@ -154,9 +154,7 @@ export function ThreadInboxView({
                     onToggle={() => onToggleSection(section.id)}
                   >
                     <Shelf label={null}>
-                      {visibleThreads.map((thread) =>
-                        renderActiveThread(thread, "inbox", false, true, false, "active"),
-                      )}
+                      {visibleThreads.map((thread) => renderActiveThread(thread, "inbox", true, true, false, "active"))}
                     </Shelf>
                   </CollapsibleShelf>
                 ))}
@@ -196,7 +194,9 @@ export function ThreadInboxView({
                       />
                     ) : inbox.visibleThreads.length > 0 ? (
                       <Shelf label={null}>
-                        {sortedVisibleInbox.map((thread) => renderActiveThread(thread, "inbox"))}
+                        {sortedVisibleInbox.map((thread) =>
+                          renderActiveThread(thread, "inbox", activeSortMode === "manual"),
+                        )}
                       </Shelf>
                     ) : null}
                   </CollapsibleShelf>
