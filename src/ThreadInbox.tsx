@@ -43,7 +43,7 @@ import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
 import { activeSortCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
-import { useSessionShelves, useThreadSessions } from "./useThreadSessions";
+import { useSectionShelves, useThreadSections } from "./useThreadSections";
 const SETTLED_INITIAL_LIMIT = 10;
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -107,7 +107,7 @@ function ThreadInboxContent({
     shelfExpansionCodec,
   );
   const [activeSortMode, setActiveSortMode] = usePersistedPreference(STORAGE_KEYS.activeSort.key, activeSortCodec);
-  const { sessions, sessionThreadIds, toggleSession } = useThreadSessions({ threads, status });
+  const { sections, sectionThreadIds, toggleSection } = useThreadSections({ threads, status });
   const [settledLimit, setSettledLimit] = useState(SETTLED_INITIAL_LIMIT);
   const [renamingShelfLocks, setRenamingShelfLocks] = useRenamingShelfLocks(threads, lifecycle);
   const providerById = useMemo(() => new Map(providers.map((provider) => [provider.id, provider])), [providers]);
@@ -135,7 +135,7 @@ function ThreadInboxContent({
     activeListThreadId,
     pinnedBase,
     inboxBase,
-    sessionBase,
+    sectionBase,
     workingBase,
     inactiveBase,
     allPinnedBase,
@@ -151,7 +151,7 @@ function ThreadInboxContent({
     now,
     renamingShelfLocks,
     scope,
-    sessionThreadIds,
+    sectionThreadIds,
     threads,
     workingShelfEnabled,
   });
@@ -203,7 +203,7 @@ function ThreadInboxContent({
     ) {
       return ids;
     }
-    for (const thread of [...pinnedBase, ...inboxBase, ...sessionBase, ...inactiveBase]) {
+    for (const thread of [...pinnedBase, ...inboxBase, ...sectionBase, ...inactiveBase]) {
       if (collapsedChildThreads(childrenByParentId.get(thread.id) ?? [], childrenByParentId, null, true).length > 0) {
         ids.add(thread.id);
       }
@@ -214,7 +214,7 @@ function ThreadInboxContent({
     inactiveBase,
     inboxBase,
     pinnedBase,
-    sessionBase,
+    sectionBase,
     sidebarSettings?.showRunningChildrenWhenCollapsed,
   ]);
   const visiblePinned = useMemo(
@@ -248,9 +248,9 @@ function ThreadInboxContent({
     () => visibleShelfThreads(inactive, expandedShelves.inactive, activeListThreadId, undefined, attentionParentIds),
     [attentionParentIds, activeListThreadId, expandedShelves.inactive, inactive],
   );
-  const sessionShelves = useSessionShelves({
-    sessions,
-    sessionBase,
+  const sectionShelves = useSectionShelves({
+    sections,
+    sectionBase,
     order: inboxReorder.ids,
     activeThreadId: activeListThreadId,
     attentionIds: attentionParentIds,
@@ -391,11 +391,11 @@ function ThreadInboxContent({
   const wokeThreadIds = useMemo(
     () =>
       new Set(
-        [...pinned, ...inbox, ...sessionBase, ...working, ...inactive]
+        [...pinned, ...inbox, ...sectionBase, ...working, ...inactive]
           .filter((thread) => lifecycle.wokeFor(thread))
           .map((thread) => thread.id),
       ),
-    [inactive, inbox, lifecycle, pinned, sessionBase, working],
+    [inactive, inbox, lifecycle, pinned, sectionBase, working],
   );
 
   const parkActiveThread = useCallback(
@@ -471,8 +471,8 @@ function ThreadInboxContent({
           parked: { threads: parked, visibleThreads: visibleParked },
           settled: { threads: settled, visibleThreads: visibleSettled },
         }}
-        sessions={sessionShelves}
-        onToggleSession={toggleSession}
+        sections={sectionShelves}
+        onToggleSection={toggleSection}
         scope={scope}
         reorderAnnouncement={reorderAnnouncement}
         attachScrollFadeRef={attachScrollFadeRef}

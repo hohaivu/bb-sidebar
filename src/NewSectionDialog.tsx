@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { usePortalScopeProps } from "./lib/portal-scope";
-import { useThreadSessions } from "./useThreadSessions";
+import { useThreadSections } from "./useThreadSections";
 
-/** Names a new session and moves the thread into it; an existing name joins that session. */
-export function NewSessionDialog({
+/** Names a new section and moves the thread into it; an existing name joins that section. */
+export function NewSectionDialog({
   threadId,
   open,
   onOpenChange,
@@ -14,7 +14,7 @@ export function NewSessionDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const portalScope = usePortalScopeProps();
-  const { createSession } = useThreadSessions();
+  const { createSection } = useThreadSections();
   const [name, setName] = useState("");
   useEffect(() => {
     if (open) setName("");
@@ -31,19 +31,19 @@ export function NewSessionDialog({
           onContextMenu={(event) => event.stopPropagation()}
           className="fixed left-1/2 top-1/2 z-50 box-border w-72 max-w-[calc(100%_-_2rem)] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-lg outline-none"
         >
-          <Dialog.Title className="text-sm font-semibold leading-5">New session</Dialog.Title>
-          <Dialog.Description className="sr-only">Name the session this thread moves into.</Dialog.Description>
+          <Dialog.Title className="text-sm font-semibold leading-5">New section</Dialog.Title>
+          <Dialog.Description className="sr-only">Name the section this thread moves into.</Dialog.Description>
           <form
             className="mt-3 flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
               if (!trimmed) return;
-              createSession(trimmed, threadId);
+              createSection(trimmed, threadId);
               onOpenChange(false);
             }}
           >
             <input
-              aria-label="Session name"
+              aria-label="Section name"
               maxLength={60}
               autoFocus
               value={name}
