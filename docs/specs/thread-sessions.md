@@ -16,8 +16,8 @@ A session is a shelf that the user names by hand. It groups top-level threads in
 
 | Part | File | Role |
 | --- | --- | --- |
-| Pure rules | `src/thread-sessions.ts` | Normalizes, creates, moves, toggles and prunes sessions. It has no React and no browser API. |
-| State hook | `src/useThreadSessions.ts` | Reads and writes the stored sessions. It prunes unknown thread ids. |
+| Pure rules | `src/thread-sessions.ts` | Normalizes sessions, creates a session, and moves a thread between sessions. It has no React and no browser API. |
+| State hook | `src/useThreadSessions.ts` | Reads and writes the stored sessions. It toggles the collapse state. It removes members that leave the thread list. |
 | Placement | `src/useInboxShelfThreads.ts` | Decides which shelf shows each thread. |
 | Render | `src/ThreadInboxView.tsx` | Renders the shelves and the empty states. |
 | Row menu | `src/RowContextMenu.tsx` | Holds the Session submenu. |
@@ -68,7 +68,10 @@ Session members skip step 7. A working member stays in its session and does not 
 - Membership is dormant while a higher-priority placement wins. A parked, snoozed, settled or pinned member keeps its membership. It returns to its session when resumed, woken, un-settled or unpinned.
 - "None" removes the thread from its session. The thread then returns to Active, Working or Inactive.
 - A session with no threads disappears, and its stored entry disappears. There is no rename and no explicit delete.
-- Once the thread list is ready, `useThreadSessions` removes ids that are not in the list. Reason: the list holds only unarchived threads, so archive and delete both remove a member. The code cannot tell them apart without a backend query.
+- `useThreadSessions` removes a member only when the window knows that the thread left the thread list. Each ready thread list counts, and the hook compares it with the previous ready list of the same window.
+- The hook also removes a member in this case. The member was stored before the first ready list of the window, and that list does not contain it.
+- Absence from the list is not enough to remove a member. Reason: another window can add a member before the thread list of this window shows it. A removal would then reach the shared storage and delete the new member.
+- The list holds only unarchived threads, so archive and delete both remove a member. The code cannot tell them apart without a backend query.
 - The prune writes only when it removes an id. Reason: a write in subscribe mode always notifies, so an unconditional write would loop.
 - Only `ThreadInbox` passes the thread list to `useThreadSessions`. The menu and the dialog read and write without pruning.
 
