@@ -23,8 +23,8 @@ interface InboxShelfThreadsOptions {
   now: number;
   renamingShelfLocks: ReadonlyMap<string, "active" | "working" | "inactive">;
   scope: readonly string[];
-  // Thread id -> session id.
-  sessionThreadIds: ReadonlyMap<string, string>;
+  // Thread id -> section id.
+  sectionThreadIds: ReadonlyMap<string, string>;
   threads: readonly PluginSidebarThread[];
   workingShelfEnabled: boolean;
 }
@@ -37,7 +37,7 @@ export function useInboxShelfThreads({
   now,
   renamingShelfLocks,
   scope,
-  sessionThreadIds,
+  sectionThreadIds,
   threads,
   workingShelfEnabled,
 }: InboxShelfThreadsOptions) {
@@ -63,13 +63,13 @@ export function useInboxShelfThreads({
     // answers for it in Active, as it would for the parent's own question.
     const askingParentIds = threadsWithAskingDescendants(threads);
     const activeUnpinned: typeof split.inbox = [];
-    const sessionBase: typeof split.inbox = [];
+    const sectionBase: typeof split.inbox = [];
     const working: typeof split.inbox = [];
     const inactive: typeof split.inbox = [];
     for (const thread of split.inbox) {
-      // A session is an explicit choice, so it wins over every automatic shelf.
-      if (sessionThreadIds.has(thread.id)) {
-        sessionBase.push(thread);
+      // A section is an explicit choice, so it wins over every automatic shelf.
+      if (sectionThreadIds.has(thread.id)) {
+        sectionBase.push(thread);
         continue;
       }
       const lockedShelf = renamingShelfLocks.get(thread.id);
@@ -107,7 +107,7 @@ export function useInboxShelfThreads({
       // BB supplies pinned rows in the user's persisted pin order.
       pinnedBase: split.pinned,
       inboxBase: sortByCreatedAtDescending(activeUnpinned),
-      sessionBase: sortByCreatedAtDescending(sessionBase),
+      sectionBase: sortByCreatedAtDescending(sectionBase),
       workingBase: sortByCreatedAtDescending(working),
       inactiveBase: sortByCreatedAtDescending(inactive),
       // Keep a global order behind project-scoped and parked views. Child and
@@ -130,7 +130,7 @@ export function useInboxShelfThreads({
     now,
     renamingShelfLocks,
     scope,
-    sessionThreadIds,
+    sectionThreadIds,
     threads,
     workingShelfEnabled,
   ]);

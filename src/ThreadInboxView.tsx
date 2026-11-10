@@ -18,7 +18,7 @@ import type { ThreadReorderControls } from "./ThreadCard";
 import { useInboxActions } from "./InboxContext";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
 import type { useInboxProjectGroups } from "./useInboxProjectGroups";
-import type { ThreadSession } from "./thread-sessions";
+import type { ThreadSection } from "./thread-sections";
 
 export interface ShelfExpansionState {
   active: boolean;
@@ -35,13 +35,13 @@ interface ShelfThreads {
   visibleThreads: readonly PluginSidebarThread[];
 }
 
-interface SessionShelf extends ShelfThreads {
-  session: ThreadSession;
+interface SectionShelf extends ShelfThreads {
+  section: ThreadSection;
 }
 
 interface ThreadInboxViewProps {
-  sessions: readonly SessionShelf[];
-  onToggleSession: (sessionId: string) => void;
+  sections: readonly SectionShelf[];
+  onToggleSection: (sectionId: string) => void;
   shelves: Record<"pinned" | "inbox" | "working" | "inactive" | "snoozed" | "parked" | "settled", ShelfThreads>;
   scope: readonly string[];
   reorderAnnouncement: string;
@@ -77,8 +77,8 @@ interface ThreadInboxViewProps {
 }
 
 export function ThreadInboxView({
-  sessions,
-  onToggleSession,
+  sections,
+  onToggleSection,
   shelves,
   scope,
   reorderAnnouncement,
@@ -144,14 +144,14 @@ export function ThreadInboxView({
                     </Shelf>
                   </CollapsibleShelf>
                 ) : null}
-                {sessions.map(({ session, threads, visibleThreads }) => (
+                {sections.map(({ section, threads, visibleThreads }) => (
                   <CollapsibleShelf
-                    key={session.id}
-                    label={session.name}
+                    key={section.id}
+                    label={section.name}
                     icon="Target"
                     count={threads.length}
-                    expanded={session.expanded}
-                    onToggle={() => onToggleSession(session.id)}
+                    expanded={section.expanded}
+                    onToggle={() => onToggleSection(section.id)}
                   >
                     <Shelf label={null}>
                       {visibleThreads.map((thread) =>
@@ -202,14 +202,14 @@ export function ThreadInboxView({
                   </CollapsibleShelf>
                 ) : null}
                 {pinned.threads.length === 0 &&
-                sessions.length === 0 &&
+                sections.length === 0 &&
                 inbox.threads.length === 0 &&
                 working.threads.length === 0 &&
                 inactive.threads.length === 0 ? (
                   <ActiveEmptyState />
                 ) : null}
                 {pinned.threads.length === 0 &&
-                sessions.length === 0 &&
+                sections.length === 0 &&
                 inbox.threads.length === 0 &&
                 working.threads.length > 0 &&
                 inactive.threads.length === 0 ? (

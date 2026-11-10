@@ -1,6 +1,6 @@
 import { isActiveSortMode } from "../inbox-layout";
 import type { ActiveSortMode } from "../inbox-layout";
-import { normalizeSessions, type ThreadSession } from "../thread-sessions";
+import { normalizeSections, type ThreadSection } from "../thread-sections";
 import { BROWSER_EVENTS } from "./browser-events";
 import type { ShelfExpansionState } from "../ThreadInboxView";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion } from "./safe-storage";
@@ -102,28 +102,28 @@ export const activeSortCodec: PreferenceCodec<ActiveSortMode> = {
   encode: (value) => value,
 };
 
-const isThreadSession = (value: unknown): value is ThreadSession => {
-  const session = value as Partial<ThreadSession> | null;
+const isThreadSection = (value: unknown): value is ThreadSection => {
+  const section = value as Partial<ThreadSection> | null;
   return (
-    typeof session === "object" &&
-    session !== null &&
-    typeof session.id === "string" &&
-    typeof session.name === "string" &&
-    typeof session.expanded === "boolean" &&
-    Array.isArray(session.threadIds) &&
-    session.threadIds.every((id) => typeof id === "string")
+    typeof section === "object" &&
+    section !== null &&
+    typeof section.id === "string" &&
+    typeof section.name === "string" &&
+    typeof section.expanded === "boolean" &&
+    Array.isArray(section.threadIds) &&
+    section.threadIds.every((id) => typeof id === "string")
   );
 };
 
-// Several components share these sessions, so writes notify and storage events re-read.
-export const threadSessionsCodec: PreferenceCodec<ThreadSession[]> = {
+// Several components share these sections, so writes notify and storage events re-read.
+export const threadSectionsCodec: PreferenceCodec<ThreadSection[]> = {
   fallback: () => [],
   decode: (stored) => {
     if (!stored) return null;
     const parsed: unknown = JSON.parse(stored);
-    return Array.isArray(parsed) ? normalizeSessions(parsed.filter(isThreadSession)) : null;
+    return Array.isArray(parsed) ? normalizeSections(parsed.filter(isThreadSection)) : null;
   },
   encode: JSON.stringify,
-  prune: normalizeSessions,
-  ...sharedPreferenceEvents(BROWSER_EVENTS.threadSessionsChanged),
+  prune: normalizeSections,
+  ...sharedPreferenceEvents(BROWSER_EVENTS.threadSectionsChanged),
 };
