@@ -57,7 +57,12 @@ Section members skip step 7. A working member stays in its section and does not 
 
 - Each section shelf has a name, a count and a collapse toggle. Section shelves follow the creation order of their sections.
 - A section shelf with no threads does not render.
-- A section shelf row is not reorderable and shows its project. Its rename shelf is "active".
+- A section shelf row shows its project. Its rename shelf is "active".
+- The user can reorder a section shelf row by drag and by Alt+ArrowUp or Alt+ArrowDown. The row moves only among the visible rows of its own section. This applies in every Active sort mode. Reason: the order of a section is always manual.
+- Section shelves show their members in the shared inbox order. Active, Working and Inactive use the same order. A reorder inside a section saves to that order. Reason: one durable order needs no new storage and no new RPC.
+- A member that leaves its section returns to Active at the slot that it last held in the shared inbox order.
+- The user cannot drag a row into another section or another shelf. Membership changes only through the row menu.
+- The Alt+Arrow announcement names the section, for example "X moved to 2 of 4 in Work".
 - The collapse state of a section shelf persists with the section.
 - `ActiveEmptyState` renders when Pinned, no section shelf, Active, Working and Inactive all have no threads.
 - `WorkingEmptyState` renders when Pinned, no section shelf and Active have no threads, Working has threads, and Inactive has none.
