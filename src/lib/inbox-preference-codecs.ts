@@ -1,10 +1,12 @@
 import { isActiveSortMode } from "../inbox-layout";
 import type { ActiveSortMode } from "../inbox-layout";
+import { normalizeSessions, type ThreadSession } from "../thread-sessions";
+import { BROWSER_EVENTS } from "./browser-events";
 import type { ShelfExpansionState } from "../ThreadInboxView";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion } from "./safe-storage";
 import { readStorageRaw } from "./storage-codec";
 import { STORAGE_KEYS } from "./storage-keys";
-import type { PreferenceCodec } from "./use-persisted-preference";
+import { sharedPreferenceEvents, type PreferenceCodec } from "./use-persisted-preference";
 
 export const projectScopeCodec: PreferenceCodec<string[]> = {
   storage: "session",
@@ -98,4 +100,30 @@ export const activeSortCodec: PreferenceCodec<ActiveSortMode> = {
     return readStorageRaw(STORAGE_KEYS.activeGrouping.key) === "true" ? "project" : "manual";
   },
   encode: (value) => value,
+};
+
+const isThreadSession = (value: unknown): value is ThreadSession => {
+  const session = value as Partial<ThreadSession> | null;
+  return (
+    typeof session === "object" &&
+    session !== null &&
+    typeof session.id === "string" &&
+    typeof session.name === "string" &&
+    typeof session.expanded === "boolean" &&
+    Array.isArray(session.threadIds) &&
+    session.threadIds.every((id) => typeof id === "string")
+  );
+};
+
+// Several components share these sessions, so writes notify and storage events re-read.
+export const threadSessionsCodec: PreferenceCodec<ThreadSession[]> = {
+  fallback: () => [],
+  decode: (stored) => {
+    if (!stored) return null;
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed) ? normalizeSessions(parsed.filter(isThreadSession)) : null;
+  },
+  encode: JSON.stringify,
+  prune: normalizeSessions,
+  ...sharedPreferenceEvents(BROWSER_EVENTS.threadSessionsChanged),
 };

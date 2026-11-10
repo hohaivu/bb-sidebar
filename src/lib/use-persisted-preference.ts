@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { decodeStoredValue, readStorageRaw, readStoredValue, writeStoredValue } from "./storage-codec";
 import type { StorageCodec } from "./storage-codec";
@@ -8,6 +8,21 @@ export interface PreferenceCodec<T> extends StorageCodec<T> {
   // External preferences write only on explicit changes and read storage on events.
   subscribe?(listener: () => void): () => void;
   notify?(): void;
+}
+
+/** `subscribe` and `notify` for a preference that components share: storage events and `event` re-read it. */
+export function sharedPreferenceEvents(event: string): Pick<PreferenceCodec<never>, "subscribe" | "notify"> {
+  return {
+    subscribe: (listener) => {
+      window.addEventListener("storage", listener);
+      window.addEventListener(event, listener);
+      return () => {
+        window.removeEventListener("storage", listener);
+        window.removeEventListener(event, listener);
+      };
+    },
+    notify: () => window.dispatchEvent(new Event(event)),
+  };
 }
 
 const noSubscription = () => () => {};
@@ -21,7 +36,11 @@ export function usePersistedPreference<T>(key: string, codec: PreferenceCodec<T>
     codec.subscribe ? snapshot : noSnapshot,
     noSnapshot,
   );
-  const value = codec.subscribe ? (decodeStoredValue(stored, codec) ?? codec.fallback()) : local;
+  // Memoized so the decoded value keeps its identity until the stored string changes.
+  const value = useMemo(
+    () => (codec.subscribe ? (decodeStoredValue(stored, codec) ?? codec.fallback()) : local),
+    [codec, stored, local],
+  );
 
   useEffect(() => {
     if (!codec.subscribe) writeStoredValue(key, codec, local);

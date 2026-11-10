@@ -18,6 +18,7 @@ import type { ThreadReorderControls } from "./ThreadCard";
 import { useInboxActions } from "./InboxContext";
 import { SCROLL_FADE_CLASS } from "./useScrollFade";
 import type { useInboxProjectGroups } from "./useInboxProjectGroups";
+import type { ThreadSession } from "./thread-sessions";
 
 export interface ShelfExpansionState {
   active: boolean;
@@ -34,7 +35,13 @@ interface ShelfThreads {
   visibleThreads: readonly PluginSidebarThread[];
 }
 
+interface SessionShelf extends ShelfThreads {
+  session: ThreadSession;
+}
+
 interface ThreadInboxViewProps {
+  sessions: readonly SessionShelf[];
+  onToggleSession: (sessionId: string) => void;
   shelves: Record<"pinned" | "inbox" | "working" | "inactive" | "snoozed" | "parked" | "settled", ShelfThreads>;
   scope: readonly string[];
   reorderAnnouncement: string;
@@ -70,6 +77,8 @@ interface ThreadInboxViewProps {
 }
 
 export function ThreadInboxView({
+  sessions,
+  onToggleSession,
   shelves,
   scope,
   reorderAnnouncement,
@@ -135,6 +144,22 @@ export function ThreadInboxView({
                     </Shelf>
                   </CollapsibleShelf>
                 ) : null}
+                {sessions.map(({ session, threads, visibleThreads }) => (
+                  <CollapsibleShelf
+                    key={session.id}
+                    label={session.name}
+                    icon="Target"
+                    count={threads.length}
+                    expanded={session.expanded}
+                    onToggle={() => onToggleSession(session.id)}
+                  >
+                    <Shelf label={null}>
+                      {visibleThreads.map((thread) =>
+                        renderActiveThread(thread, "inbox", false, true, false, "active"),
+                      )}
+                    </Shelf>
+                  </CollapsibleShelf>
+                ))}
                 {inbox.threads.length > 0 ? (
                   <CollapsibleShelf
                     label="Active"
@@ -177,12 +202,14 @@ export function ThreadInboxView({
                   </CollapsibleShelf>
                 ) : null}
                 {pinned.threads.length === 0 &&
+                sessions.length === 0 &&
                 inbox.threads.length === 0 &&
                 working.threads.length === 0 &&
                 inactive.threads.length === 0 ? (
                   <ActiveEmptyState />
                 ) : null}
                 {pinned.threads.length === 0 &&
+                sessions.length === 0 &&
                 inbox.threads.length === 0 &&
                 working.threads.length > 0 &&
                 inactive.threads.length === 0 ? (

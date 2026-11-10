@@ -8,6 +8,8 @@ import { ParentThreadMenu } from "./ParentThreadMenu";
 import { notifiesParent, ParentNotificationsMenu } from "./ParentNotificationsMenu";
 import { DeleteThreadDialog } from "./DeleteThreadDialog";
 import { SnoozePickerDialog } from "./SnoozePickerDialog";
+import { NewSessionDialog } from "./NewSessionDialog";
+import { useThreadSessions } from "./useThreadSessions";
 import { Icon, type IconName } from "./components/Icon";
 import { cn } from "./lib/utils";
 import { usePortalScopeProps } from "./lib/portal-scope";
@@ -85,6 +87,9 @@ function RowMenuContents({
   const pendingNotificationSave = useRef<Promise<void> | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [pickingSnooze, setPickingSnooze] = useState(false);
+  const [namingSession, setNamingSession] = useState(false);
+  // Only a top-level, unpinned row on a session, Active, Working or Inactive shelf can be assigned.
+  const canSession = thread.parentThreadId == null && !thread.isPinned && !onResume && !onWake && !onUnsettle;
   // Archive takes the children with it, and bb leaves every idle one's agent
   // session loaded. Release them alongside the archive. Working children are
   // skipped, so this never interrupts a turn archive itself would not.
@@ -147,7 +152,7 @@ function RowMenuContents({
               onCloseAutoFocus={(event) => {
                 onCloseAutoFocus?.(event);
                 // A dialog takes focus next; do not pull it back to the row.
-                if (confirmingDelete || pickingSnooze) event.preventDefault();
+                if (confirmingDelete || pickingSnooze || namingSession) event.preventDefault();
                 if (!renameAfterClose.current) return;
                 renameAfterClose.current = false;
                 // Hand focus to the editor after the menu releases its focus scope.
@@ -182,6 +187,7 @@ function RowMenuContents({
                   </ContextMenu.Portal>
                 </ContextMenu.Sub>
               ) : null}
+              {canSession ? <SessionSubmenu threadId={thread.id} onNew={() => setNamingSession(true)} /> : null}
               {hasPinLifecycleItems ? <Separator /> : null}
               {thread.isPinned || thread.parentThreadId == null ? (
                 <Item icon={thread.isPinned ? "PinOff" : "Pin"} onSelect={() => void togglePin()}>
@@ -244,10 +250,54 @@ function RowMenuContents({
         )}
       </ProjectActions>
       <DeleteThreadDialog thread={thread} open={confirmingDelete} onOpenChange={setConfirmingDelete} />
+      {canSession ? (
+        <NewSessionDialog threadId={thread.id} open={namingSession} onOpenChange={setNamingSession} />
+      ) : null}
       {onSnooze ? (
         <SnoozePickerDialog open={pickingSnooze} onOpenChange={setPickingSnooze} onSnooze={onSnooze} />
       ) : null}
     </>
+  );
+}
+
+function SessionSubmenu({ threadId, onNew }: { threadId: string; onNew: () => void }) {
+  const { sessions, sessionThreadIds, moveThread } = useThreadSessions();
+  const portalScope = usePortalScopeProps();
+  return (
+    <ContextMenu.Sub>
+      <ContextMenu.SubTrigger className="flex cursor-pointer items-center rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[state=open]:bg-accent data-[highlighted]:bg-accent">
+        Session
+        <Icon name="ChevronRight" className="ml-auto size-4 opacity-60" />
+      </ContextMenu.SubTrigger>
+      <ContextMenu.Portal>
+        <ContextMenu.SubContent
+          {...portalScope}
+          aria-label="Session"
+          sideOffset={4}
+          className="z-50 min-w-44 max-w-64 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+        >
+          <ContextMenu.RadioGroup
+            value={sessionThreadIds.get(threadId) ?? ""}
+            onValueChange={(value) => moveThread(threadId, value || null)}
+          >
+            {[{ id: "", name: "None" }, ...sessions].map((session) => (
+              <ContextMenu.RadioItem
+                key={session.id}
+                value={session.id}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-[0.3125rem] text-xs outline-none data-[highlighted]:bg-accent"
+              >
+                <span className="flex-1 truncate">{session.name}</span>
+                <ContextMenu.ItemIndicator>
+                  <Icon name="Check" className="size-4" />
+                </ContextMenu.ItemIndicator>
+              </ContextMenu.RadioItem>
+            ))}
+          </ContextMenu.RadioGroup>
+          <Separator />
+          <Item onSelect={onNew}>New session…</Item>
+        </ContextMenu.SubContent>
+      </ContextMenu.Portal>
+    </ContextMenu.Sub>
   );
 }
 
