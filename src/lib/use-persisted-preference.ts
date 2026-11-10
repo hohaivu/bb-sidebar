@@ -10,6 +10,21 @@ export interface PreferenceCodec<T> extends StorageCodec<T> {
   notify?(): void;
 }
 
+/** `subscribe` and `notify` for a preference that components share: storage events and `event` re-read it. */
+export function sharedPreferenceEvents(event: string): Pick<PreferenceCodec<never>, "subscribe" | "notify"> {
+  return {
+    subscribe: (listener) => {
+      window.addEventListener("storage", listener);
+      window.addEventListener(event, listener);
+      return () => {
+        window.removeEventListener("storage", listener);
+        window.removeEventListener(event, listener);
+      };
+    },
+    notify: () => window.dispatchEvent(new Event(event)),
+  };
+}
+
 const noSubscription = () => () => {};
 const noSnapshot = () => null;
 

@@ -22,45 +22,29 @@ export function normalizeSessions(sessions: readonly ThreadSession[]): ThreadSes
   return result;
 }
 
-/** `null` removes the thread from every session. */
+/** `null` removes the thread from every session. The codec normalizes on write, so empty sessions drop out. */
 export function moveThreadToSession(
   sessions: readonly ThreadSession[],
   threadId: string,
   sessionId: string | null,
 ): ThreadSession[] {
-  return normalizeSessions(
-    sessions.map((session) => ({
-      ...session,
-      threadIds:
-        session.id === sessionId
-          ? [...session.threadIds.filter((id) => id !== threadId), threadId]
-          : session.threadIds.filter((id) => id !== threadId),
-    })),
-  );
+  return sessions.map((session) => {
+    const threadIds = session.threadIds.filter((id) => id !== threadId);
+    return { ...session, threadIds: session.id === sessionId ? [...threadIds, threadId] : threadIds };
+  });
 }
 
-/** A name that matches an existing session, ignoring case, joins it. */
+/** A name that matches an existing session, ignoring case, joins it. `name` is already trimmed. */
 export function createSession(
   sessions: readonly ThreadSession[],
   name: string,
   threadId: string,
   id: string,
 ): ThreadSession[] {
-  const trimmed = name.trim();
-  const existing = sessions.find((session) => session.name.trim().toLowerCase() === trimmed.toLowerCase());
-  if (existing) return moveThreadToSession(sessions, threadId, existing.id);
-  return moveThreadToSession([...sessions, { id, name: trimmed, threadIds: [], expanded: true }], threadId, id);
-}
-
-export function toggleSessionExpanded(sessions: readonly ThreadSession[], id: string): ThreadSession[] {
-  return sessions.map((session) => (session.id === id ? { ...session, expanded: !session.expanded } : session));
-}
-
-export function pruneSessionThreads(
-  sessions: readonly ThreadSession[],
-  knownThreadIds: ReadonlySet<string>,
-): ThreadSession[] {
-  return normalizeSessions(
-    sessions.map((session) => ({ ...session, threadIds: session.threadIds.filter((id) => knownThreadIds.has(id)) })),
+  const existing = sessions.find((session) => session.name.toLowerCase() === name.toLowerCase());
+  return moveThreadToSession(
+    existing ? sessions : [...sessions, { id, name, threadIds: [], expanded: true }],
+    threadId,
+    existing?.id ?? id,
   );
 }

@@ -6,7 +6,7 @@ import type { ShelfExpansionState } from "../ThreadInboxView";
 import { MAX_CHILD_EXPANSION, pruneChildExpansion } from "./safe-storage";
 import { readStorageRaw } from "./storage-codec";
 import { STORAGE_KEYS } from "./storage-keys";
-import type { PreferenceCodec } from "./use-persisted-preference";
+import { sharedPreferenceEvents, type PreferenceCodec } from "./use-persisted-preference";
 
 export const projectScopeCodec: PreferenceCodec<string[]> = {
   storage: "session",
@@ -125,13 +125,5 @@ export const threadSessionsCodec: PreferenceCodec<ThreadSession[]> = {
   },
   encode: JSON.stringify,
   prune: normalizeSessions,
-  subscribe: (listener) => {
-    window.addEventListener("storage", listener);
-    window.addEventListener(BROWSER_EVENTS.threadSessionsChanged, listener);
-    return () => {
-      window.removeEventListener("storage", listener);
-      window.removeEventListener(BROWSER_EVENTS.threadSessionsChanged, listener);
-    };
-  },
-  notify: () => window.dispatchEvent(new Event(BROWSER_EVENTS.threadSessionsChanged)),
+  ...sharedPreferenceEvents(BROWSER_EVENTS.threadSessionsChanged),
 };

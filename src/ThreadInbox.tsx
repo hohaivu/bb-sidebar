@@ -251,7 +251,6 @@ function ThreadInboxContent({
   const sessionShelves = useSessionShelves({
     sessions,
     sessionBase,
-    sessionThreadIds,
     order: inboxReorder.ids,
     activeThreadId: activeListThreadId,
     attentionIds: attentionParentIds,
