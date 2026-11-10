@@ -4,7 +4,7 @@ import type { useSidebarThreads } from "./bb-sdk";
 import { threadSectionsCodec } from "./lib/inbox-preference-codecs";
 import { STORAGE_KEYS } from "./lib/storage-keys";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
-import { visibleShelfThreads } from "./inbox-layout";
+import { visibleShelfThreads, type ReorderScope } from "./inbox-layout";
 import type { InboxDragOrder } from "./drag-reorder-geometry";
 import { orderPinnedThreads, orderSubsetInPlace } from "./pinned-order";
 import { createSection, moveThreadToSection, type ThreadSection } from "./thread-sections";
@@ -90,9 +90,11 @@ export function useSectionShelves({
   );
 }
 
-/** The visible row ids of the section that holds `key`, or undefined when `key` is in no section shelf. */
-export function sectionScopeIds(shelves: ReturnType<typeof useSectionShelves>, key: string) {
-  return shelves
-    .find(({ threads }) => threads.some((thread) => thread.id === key))
-    ?.visibleThreads.map((thread) => thread.id);
+/** The reorder scope of the section shelf that holds `key`, or undefined when `key` is in no section shelf. */
+export function sectionReorderScope(
+  shelves: ReturnType<typeof useSectionShelves>,
+  key: string,
+): ReorderScope | undefined {
+  const shelf = shelves.find(({ threads }) => threads.some((thread) => thread.id === key));
+  return shelf && { mode: "thread", ids: shelf.visibleThreads.map((thread) => thread.id), section: shelf.section.name };
 }

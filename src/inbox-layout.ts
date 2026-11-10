@@ -11,6 +11,8 @@ export interface ReorderScope {
   mode: ReorderMode;
   ids: string[];
   parentKey?: string | null;
+  /** Set when the rows are one custom section: its name. */
+  section?: string;
 }
 
 export function isActiveSortMode(value: string): value is ActiveSortMode {

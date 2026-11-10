@@ -43,7 +43,7 @@ import { DEFAULT_SIDEBAR_SETTINGS } from "./sidebar-settings";
 import { useScrollFade } from "./useScrollFade";
 import { usePersistedPreference } from "./lib/use-persisted-preference";
 import { activeSortCodec, childExpansionCodec, shelfExpansionCodec } from "./lib/inbox-preference-codecs";
-import { sectionScopeIds, useSectionShelves, useThreadSections } from "./useThreadSections";
+import { sectionReorderScope, useSectionShelves, useThreadSections } from "./useThreadSections";
 const SETTLED_INITIAL_LIMIT = 10;
 
 type ActiveShelfKind = "pinned" | "inbox";
@@ -282,8 +282,8 @@ function ThreadInboxContent({
    */
   const reorderScope = useCallback(
     (key: string, shelf: "pinned" | "inbox"): ReorderScope => {
-      const sectionIds = shelf === "inbox" ? sectionScopeIds(sectionShelves, key) : undefined;
-      if (sectionIds) return { mode: "thread", ids: sectionIds };
+      const sectionScope = shelf === "inbox" ? sectionReorderScope(sectionShelves, key) : undefined;
+      if (sectionScope) return sectionScope;
       if (shelf === "inbox" && activeSortMode === "project") {
         return projectGroups.reorderScope(key);
       }
@@ -352,17 +352,17 @@ function ThreadInboxContent({
           }
           event.preventDefault();
           event.stopPropagation();
-          const { mode, ids: currentIds, parentKey } = reorderScopeRef.current(key, shelf);
+          const { mode, ids: currentIds, parentKey, section } = reorderScopeRef.current(key, shelf);
           const ids = movePinnedIdByOffset(currentIds, key, event.key === "ArrowUp" ? -1 : 1);
-          const shelfName =
-            sections.find((section) => section.threadIds.includes(key))?.name ??
-            (shelf === "pinned" ? "Pinned" : "Active");
+          const shelfName = shelf === "pinned" ? "Pinned" : (section ?? "Active");
+          const unchanged = sameOrder(ids, currentIds);
           setReorderAnnouncement(
-            sameOrder(ids, currentIds)
+            unchanged
               ? `${title} is already ${event.key === "ArrowUp" ? "first" : "last"} in ${shelfName}`
               : `${title} moved to ${ids.indexOf(key) + 1} of ${ids.length} in ${shelfName}`,
           );
-          commitReorder(shelf, mode, ids, key, parentKey);
+          // Rebasing an unchanged section subset would still shuffle the shared inbox order.
+          if (!unchanged || section === undefined) commitReorder(shelf, mode, ids, key, parentKey);
         },
       };
     },
@@ -373,7 +373,6 @@ function ThreadInboxContent({
       listAnimationController,
       suppressDragClick,
       commitReorder,
-      sections,
     ],
   );
   const threadReorderControls = useCallback(
