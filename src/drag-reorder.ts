@@ -1,6 +1,7 @@
 import type { ThreadReorderControls } from "./ThreadCard";
 import { createDragPreview } from "./drag-preview";
 import { createDragAutoScroll, findScrollContainer, listenForDrag } from "./drag-auto-scroll";
+import { sameOrder } from "./inbox-layout";
 import { createDragReorderGeometry, type DragReorderOptions } from "./drag-reorder-geometry";
 
 export function createDragReorderHandler({
@@ -36,6 +37,7 @@ export function createDragReorderHandler({
     // time `currentTarget` is meaningful.
     const rowAnchor = event.currentTarget;
     let engaged = false;
+    let startIds: readonly string[] = [];
     let finished = false;
     let previousUserSelect = "";
     let previousCursor = "";
@@ -96,6 +98,7 @@ export function createDragReorderHandler({
         movingId,
         ...reorderScopeRef.current(movingId, shelf),
       };
+      startIds = next.ids;
       dragOrderRef.current = next;
       setDragOrder(next);
       autoScroll.start();
@@ -131,6 +134,21 @@ export function createDragReorderHandler({
       // the last word on where this row belongs.
       if (engaged) reorderAt(upEvent.clientX, upEvent.clientY);
       const current = dragOrderRef.current;
+      // A section row only reorders inside its own list: a release anywhere else, or back at the
+      // starting order, is a cancel, not a write.
+      if (engaged && current?.section !== undefined) {
+        const box = listElement?.getBoundingClientRect();
+        const inside =
+          !!box &&
+          upEvent.clientX >= box.left &&
+          upEvent.clientX <= box.right &&
+          upEvent.clientY >= box.top &&
+          upEvent.clientY <= box.bottom;
+        if (!inside || sameOrder(current.ids, startIds)) {
+          cancel();
+          return;
+        }
+      }
       finished = true;
       cleanup();
       if (!engaged || !current || current.shelf !== shelf) return;

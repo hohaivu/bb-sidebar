@@ -9,6 +9,7 @@ export interface InboxDragOrder {
   mode: "thread" | "unit";
   movingId: string;
   parentKey?: string | null;
+  section?: string;
   ids: string[];
 }
 
